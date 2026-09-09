@@ -7,3 +7,5 @@
 # Kate leaves these beside the file it is editing, and one of them sits next to Backend/.env.
 *.kate-swp
 .*.kate-swp
+
+*PLAN.md
