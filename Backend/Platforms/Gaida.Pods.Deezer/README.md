@@ -13,6 +13,23 @@ MP3 320 is what every download asks for. FLAC happens only when the caller says 
 | `DEEZER_CACHE_MAX_BYTES` | Disk budget, default 20 GiB — roughly 2000 tracks at MP3 320 or 500 at FLAC. |
 | `DEEZER_SEARCH_LIMIT` / `DEEZER_PLAYLIST_LIMIT` / `DEEZER_ALBUM_TRACK_LIMIT` | Page sizes, default 15 / 1000 / 200. |
 
+## Running it
+
+```bash
+docker compose up gaida-deezer       # from Backend/
+```
+
+Or on the host:
+
+```bash
+pip install -r requirements.txt
+DEEZER_CACHE=./cache uvicorn main:app --port 8084
+pytest                               # test_deezer.py, pytest installed separately
+```
+
+> [!NOTE]
+> With no `DEEZER_ARL` the pod runs metadata-only and `/content` is the only route that stops working. Leave `DEEZER_RESOLVE=true` in that case, so Gaida.API looks its hits up elsewhere instead of handing clients a `deezer://` ID it cannot play.
+
 ## Interesting techniques
 
 - **Blowfish decryption in strides.** Deezer encrypts the first 2048 bytes of every 6144 and leaves the rest alone, with a per-track key derived from an MD5 of the track ID. [stream.py](stream.py) decrypts chunk by chunk as bytes arrive, so nothing is buffered whole.

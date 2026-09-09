@@ -6,6 +6,14 @@ This project is the platform, not a deployable. [Gaida.Pods.MusicDatabase](../Ga
 
 Two environment variables shape it: `STORAGE` is the library root, `ALBUM_COVERS` where extracted art is written, and `DOMAIN` is the public prefix substituted into each track's cover URL.
 
+## Using it
+
+Not a deployable — it is referenced by [Gaida.Pods.MusicDatabase](../Gaida.Pods.MusicDatabase) and by [Gaida.Bot](../../Services/Gaida.Bot), both of which construct `MusicManager` and let it scan. `ffprobe`, `metaflac` and `wvunpack` are expected on `PATH`.
+
+```bash
+dotnet test Tests/Pods.Tests         # from Backend/ — the matcher's calibration lives here
+```
+
 ## Interesting techniques
 
 - **A calibrated match, not a similarity score.** [MusicManager.Match.cs](Manager/MusicManager.Match.cs) weights title against artist 0.65/0.35 over Levenshtein distance and grades the result `Same`, `Variant` or `Weak`. The thresholds come from a 2000-title pass over the real library — every match at 0.806 and above was right, and the wrong answers start at 0.783 — and the file records which titles set them, so they can be re-derived when the library's tagging habits change. A weak match also has to agree on length within 20 seconds; a strong one never has to, since uploads carry intros.

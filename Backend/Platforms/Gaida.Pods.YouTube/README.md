@@ -9,6 +9,23 @@ It owns two caches on disk — the JSON search cache and the downloaded audio �
 | `YOUTUBE_CACHE_DB` | The search cache file. |
 | `YOUTUBE_CACHE` | The directory of downloaded audio. Point it somewhere new and the pod starts empty and re-downloads everything. |
 
+## Running it
+
+```bash
+docker compose up gaida-youtube      # from Backend/
+```
+
+Or on the host, with `yt-dlp` and `ffmpeg` on `PATH`:
+
+```bash
+YOUTUBE_CACHE_DB=./YouTube.json YOUTUBE_CACHE=./webm \
+  dotnet run --project Platforms/Gaida.Pods.YouTube --urls http://localhost:8082
+```
+
+```bash
+dotnet run --project Platforms/Gaida.Pods.YouTube -- --self-check
+```
+
 ## Interesting techniques
 
 - **Query classification as its own route.** [Classify.cs](Classify.cs) is the YouTube half of what used to be a central `QueryParser` in Gaida.API, moved here so each platform owns the shapes it recognises. It answers `200` for a recognised query, `400` for something recognisably YouTube's but malformed, and `404` for "not mine" — which the API defaults to a keyword search. Pure string parsing, so it needs no network and no platform instance.

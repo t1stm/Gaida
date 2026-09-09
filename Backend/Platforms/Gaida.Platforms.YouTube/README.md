@@ -6,6 +6,14 @@ This project is the platform, not a deployable. [Gaida.Pods.YouTube](../Gaida.Po
 
 `YOUTUBE_CACHE_DB` points at the search cache file, `YOUTUBE_CACHE` at the directory of downloaded audio.
 
+## Using it
+
+Not a deployable — it is referenced by [Gaida.Pods.YouTube](../Gaida.Pods.YouTube) and by [Gaida.Bot](../../Services/Gaida.Bot). `yt-dlp` and `ffmpeg` are expected on `PATH`, since the fallback getter is a process.
+
+```bash
+dotnet test Tests/Pods.Tests         # from Backend/ — cacher and getter tests
+```
+
 ## Interesting techniques
 
 - **Priority chains rather than conditionals.** Search providers and content getters are ordered by a `Priority` property at `Initialize()`, then tried in turn until one answers. Content goes local cache (99), then [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) (40), then [yt-dlp](https://github.com/yt-dlp/yt-dlp) (20) — the slow, reliable one last. Adding a source is adding a class, not editing a branch.

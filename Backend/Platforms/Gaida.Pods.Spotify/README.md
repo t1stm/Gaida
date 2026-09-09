@@ -6,6 +6,20 @@ That shapes the whole pod. There is no `/content` route and no `contentUrl` in i
 
 It needs no credentials at all. [SpotAPI](https://github.com/Aran404/SpotAPI) reaches Spotify's own web endpoints, so there is no client ID, no secret, no premium account, and nothing to put in `.env`. `SPOTIFY_SEARCH_LIMIT` (default 15) is the only knob.
 
+## Running it
+
+```bash
+docker compose up gaida-spotify      # from Backend/
+```
+
+Or on the host:
+
+```bash
+pip install -r requirements.txt
+uvicorn main:app --port 8083
+pytest                               # test_classify.py, pytest installed separately
+```
+
 ## Interesting techniques
 
 - **A search limit that is a budget, not a page size.** Each hit costs Gaida.API a resolve against another platform, so the default is 15 where Spotify's own first page is 100.

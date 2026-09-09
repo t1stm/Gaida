@@ -1,3 +1,5 @@
+<img src="static/favicon.svg" width="64" alt="">
+
 # Gaida Frontend
 
 The web player. A SvelteKit app built to static files, talking to the Gaida API over `/Audio`. It plays from the local library, YouTube and Deezer, keeps a queue, holds playlists and accounts, and can put several listeners in a room on the same track at the same position — inside about 50 ms of each other, network aside.
@@ -5,6 +7,31 @@ The web player. A SvelteKit app built to static files, talking to the Gaida API 
 The same build runs in three places: as an ordinary site, as an installable PWA, and embedded in a Discord voice channel as an Activity. Nothing branches on that beyond URL rewriting; see [Running as a Discord Activity](#running-as-a-discord-activity) below.
 
 Currently running at <https://music.gergov.bg/>.
+
+## Getting started
+
+**Prerequisites:** [Node.js](https://nodejs.org/) 20 or newer.
+
+```bash
+npm install
+npm run dev
+```
+
+Vite serves on <http://localhost:5173>, bound to every interface so a phone on the same network can open it.
+
+> [!IMPORTANT]
+> The API base is a constant, not an environment variable: `audioApi` in [src/lib/discord.ts](src/lib/discord.ts) points at `https://api.gergov.bg/Audio`. A fresh checkout therefore talks to that deployment and plays music straight away — point it at your own backend (`http://localhost:5340/Audio` for the compose defaults) before building anything you intend to serve.
+
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Vite dev server with HMR |
+| `npm test` | Vitest over jsdom, once |
+| `npm run build` | `tsc` then a static build into `build/` |
+| `npm run preview` | Serves that build |
+| `npm run lint` / `lint:fix` | ESLint, with Prettier as a rule |
+| `npm run type-check` | `tsc --noEmit` |
+
+The build is plain files — `adapter-static` with an `index.html` fallback — so deploying is copying `build/` to a web root. `npm run deploy` does exactly that with `rsync`, and its target path is this deployment's; change it or ignore it.
 
 ## Interesting techniques
 

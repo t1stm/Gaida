@@ -11,6 +11,21 @@ It is the one pod that is not replicable — it is pinned to the library volume 
 | `DOMAIN` | Public prefix substituted into each cover URL. Needs a scheme — a bare host is not a URL the API can fetch. |
 | `DEEZER_URL` | The Deezer pod, for `/Admin/import-deezer` only. Unset, that one route answers 400 and nothing else changes. |
 
+## Running it
+
+```bash
+docker compose up gaida-local        # from Backend/
+```
+
+Or on the host, with the library somewhere convenient:
+
+```bash
+STORAGE=../../data/music ALBUM_COVERS=./Album_Covers DOMAIN=http://localhost:8081 \
+  dotnet run --project Platforms/Gaida.Pods.MusicDatabase --urls http://localhost:8081
+```
+
+The scan runs in the background, so the pod answers before it has finished reading the tree. Its tests are in [Tests/Pods.Tests](../../Tests/Pods.Tests); `--self-check` runs the pure-logic ones with no library mounted.
+
 ## Interesting techniques
 
 - **A scan that does not block the boot.** `Initialize()` starts the library scan and returns, so the pod is listening while it reads thousands of folders. Folders are parsed with `Parallel.ForEachAsync` into a `ConcurrentBag`; folder order stops being stable, and nothing downstream depends on it.

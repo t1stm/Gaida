@@ -17,6 +17,71 @@ The frontend-facing contract is in [API.md](API.md), the room protocol in [MULTI
 | [Oko](Services/Oko) | The admin panel. Reads every other service, holds no state of its own. |
 | [Gaida.Bot](Services/Gaida.Bot) | A Discord bot playing from the same library, in-process rather than over HTTP. |
 
+## Getting started
+
+**Prerequisites:** Docker with Compose v2. Working on the .NET services outside a container also wants the [.NET 10 SDK](https://dotnet.microsoft.com/download), with `ffmpeg` and `yt-dlp` on `PATH`.
+
+```bash
+docker compose up --build
+```
+
+That is the whole stack on compose's defaults — no secrets, no credentials, every volume under `data/`. Name services to bring up part of it (`docker compose up gaida-api gaida-local`); the pods are independent of each other, and Gaida.API treats a pod that is not there as one that answered nothing.
+
+| Service | Host port | Bound to |
+| --- | --- | --- |
+| Gaida.API | 5340 | `127.0.0.1` |
+| Dunav | 5341 | `127.0.0.1` |
+| Selo | 5342 | `127.0.0.1` |
+| Dom | 5343 | `127.0.0.1` |
+| Oko | 5344 | every interface |
+
+The pods themselves publish nothing: they are reachable only from the compose network, by service name.
+
+> [!WARNING]
+> Oko is the one port not bound to the loopback interface, so the host firewall is the only thing in front of it — and it reads every other service, including Dom's accounts. Its Basic auth sends the password base64-encoded, not encrypted. Firewall it, or move it behind nginx with TLS.
+
+A first request, once something is in the library:
+
+```bash
+curl "http://localhost:5340/Audio/Search?query=radiohead"
+```
+
+## Configuration
+
+Every host-specific value and every secret lives in `.env` beside [compose.yaml](compose.yaml), which compose reads on its own and `.gitignore` keeps out of the repository. The defaults below are what a fresh checkout runs on; the file's own comments carry the rest.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `MUSIC_LIBRARY_PATH` | `./data/music` | The music library, mounted read-write — the scanner rewrites `Info.json` in place. |
+| `ALBUM_COVERS_PATH` | `./data/covers` | Where extracted album art is written, and what nginx serves as `/Album_Covers`. |
+| `PUBLIC_DOMAIN` | `http://localhost` | Public prefix substituted into every cover URL. Needs the scheme. |
+| `PUBLIC_API_BASE_URL` | `http://localhost:5340` | What the API hands out as `contentUrl`. |
+| `ADMIN_TOKEN` | *(unset)* | The shared secret Oko authenticates with. Unset, every `/Admin/*` route answers 404. |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | *(unset)* | Oko's own Basic auth. |
+| `DEEZER_ARL` | *(unset)* | Deezer account cookie. Unset, the pod is metadata-only. |
+| `DEEZER_RESOLVE` | `true` | Tells Gaida.API to resolve Deezer hits elsewhere — what metadata-only mode needs. |
+| `DUNAV_MAX_BYTES` | 20 GiB | Disk budget for the download cache, evicted LRU. |
+| `YOUTUBE_RANDOM_SHARE` | `0.4` | Share of `RandomResults` drawn from YouTube, the library backfilling the rest. |
+
+> [!NOTE]
+> A missing secret disables a surface rather than exposing it. Without `ADMIN_TOKEN` the whole admin surface is 404 and Oko renders every target as down; without `DEEZER_ARL` every Deezer route works except `/content`. Both are what a fresh checkout runs on.
+
+## Tests
+
+```bash
+dotnet test Tests/Gaida.Tests          # shared library and the services
+dotnet test Tests/Pods.Tests           # platform code, including the matcher's calibration
+pytest Platforms/Gaida.Pods.Spotify Platforms/Gaida.Pods.Deezer
+```
+
+`pytest` is not in either pod's `requirements.txt` — those pin what the image ships. Install it separately.
+
+The .NET pods and services also carry `--self-check`, which runs their pure-logic checks and exits, with no library mounted and no port bound:
+
+```bash
+dotnet run --project Platforms/Gaida.Pods.YouTube -- --self-check
+```
+
 ## Interesting techniques
 
 - **One writer, many readers, over a single file.** [`StreamSpreader`](Gaida%20Library/Gaida.Core/Streams/StreamSpreader.cs) is a `Stream` that lets an in-progress download serve every client that asked for it. `FileShare.ReadWrite | FileShare.Delete` on both sides is what makes that legal on Windows and lets the file be evicted while readers still hold it — unlinking removes the directory entry, and the bytes live until the last descriptor closes.
