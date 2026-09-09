@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { PUBLIC_API_URL } from '$env/static/public';
 import playlists, { coverFor, toSnapshot } from './playlists.svelte';
 import account from './account.svelte';
 import type { SearchResult } from './search.svelte';
@@ -12,7 +13,7 @@ const summary = (over: Partial<Parameters<typeof coverFor>[0]> = {}) => ({
 
 it('prefers an uploaded cover, then the first track, then the empty image', () => {
 	expect(coverFor(summary({ coverUrl: '/Audio/Playlists/p_1/Cover' }))).toBe(
-		'https://api.gergov.bg/Audio/Playlists/p_1/Cover',
+		`${PUBLIC_API_URL}/Playlists/p_1/Cover`,
 	);
 	expect(coverFor(summary({ firstTrackThumbnailUrl: 'https://img/1.jpg' }))).toBe(
 		'https://img/1.jpg',

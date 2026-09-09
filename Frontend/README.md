@@ -19,12 +19,25 @@ npm run dev
 
 Vite serves on <http://localhost:5173>, bound to every interface so a phone on the same network can open it.
 
-> [!IMPORTANT]
-> The API base is a constant, not an environment variable: `audioApi` in [src/lib/discord.ts](src/lib/discord.ts) points at `https://api.gergov.bg/Audio`. A fresh checkout therefore talks to that deployment and plays music straight away — point it at your own backend (`http://localhost:5340/Audio` for the compose defaults) before building anything you intend to serve.
+### Pointing it at your own API
+
+`PUBLIC_API_URL` decides which backend musicrain talks to, read through [`$env/static/public`](https://svelte.dev/docs/kit/$env-static-public) in [src/lib/discord.ts](src/lib/discord.ts) and inlined at build time.
+
+Vite reads [.env](.env) first, then `.env.local` on top of it. `.env` is committed and holds placeholders; `.env.local` is gitignored and is where this machine's real values belong — `VITE_DISCORD_CLIENT_ID` included:
+
+```bash
+echo 'PUBLIC_API_URL=http://localhost:5340/Audio' >> .env.local
+```
+
+That address is the backend on compose's defaults. Either file works — editing `.env` in place is fine for a fork that has one deployment — but only `.env.local` stays out of the repository.
+
+> [!NOTE]
+> The value is baked into the bundle, so changing it means rebuilding rather than restarting — and inside a Discord Activity it is ignored entirely, since the CSP only allows the `/.proxy` mappings.
 
 | Script | What it does |
 | --- | --- |
 | `npm run dev` | Vite dev server with HMR |
+| `npm run prepare` | `svelte-kit sync` — regenerates the `$env` and route types; npm runs it on install |
 | `npm test` | Vitest over jsdom, once |
 | `npm run build` | `tsc` then a static build into `build/` |
 | `npm run preview` | Serves that build |
@@ -111,7 +124,7 @@ The build is plain files — `adapter-static` with an `index.html` fallback — 
 
 ## Running as a Discord Activity
 
-1. Set `VITE_DISCORD_CLIENT_ID` in a `.env` file (your application's ID).
+1. Set `VITE_DISCORD_CLIENT_ID` in `.env.local` (your application's ID).
 2. In the Developer Portal, enable Activities and add these **URL Mappings**:
 
    | Prefix | Target |

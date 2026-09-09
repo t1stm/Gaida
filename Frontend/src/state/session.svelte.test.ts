@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PUBLIC_API_URL } from '$env/static/public';
 import { minSteeringSamples, minSyncSpacingMs, proportionalGain, settledSyncSpacingMs } from '$lib/syncClock';
 import type Session from './session.svelte';
 import type Queue from './queue.svelte';
@@ -76,7 +77,9 @@ afterEach(() => {
 
 describe('joining', () => {
 	it('names you in the query string, encoded', () => {
-		expect(FakeSocket.last.url).toBe('wss://api.gergov.bg/Audio/Multiplayer/Join?room=0f0f4e0c&username=Kris%20G');
+		expect(FakeSocket.last.url).toBe(
+			`${PUBLIC_API_URL.replace(/^http/, 'ws')}/Multiplayer/Join?room=0f0f4e0c&username=Kris%20G`
+		);
 	});
 
 	it('treats a close with zero frames as a room that does not exist', () => {

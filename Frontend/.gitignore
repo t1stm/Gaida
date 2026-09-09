@@ -30,7 +30,11 @@ dist-ssr
 # Build output
 .svelte-kit
 build
-.env
+
+# Vite reads .env then .env.local. The first holds the committed public defaults;
+# the second is this machine's overrides and its secrets, and stays out of the repo.
+.env.local
+.env.*.local
 
 
 BUGS.md

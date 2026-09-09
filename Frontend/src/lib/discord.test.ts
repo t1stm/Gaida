@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PUBLIC_API_URL } from '$env/static/public';
 import type { SearchResult } from '$states/search.svelte';
 
 const thumb = (thumbnailUrl: string | null, id = 'x'): SearchResult => ({
@@ -25,7 +26,7 @@ describe('discord activity detection', () => {
 		const { isDiscordActivity, audioApi, proxyThumbnails } = await loadAt('https://music.gergov.bg/');
 
 		expect(isDiscordActivity).toBe(false);
-		expect(audioApi).toBe('https://api.gergov.bg/Audio');
+		expect(audioApi).toBe(PUBLIC_API_URL);
 		expect(proxyThumbnails([thumb('https://i.ytimg.com/vi/abc/hq.jpg')])[0].thumbnailUrl).toBe(
 			'https://i.ytimg.com/vi/abc/hq.jpg'
 		);

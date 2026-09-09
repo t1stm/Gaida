@@ -1,4 +1,5 @@
 import { DiscordSDK } from '@discord/embedded-app-sdk';
+import { PUBLIC_API_URL } from '$env/static/public';
 import type { SearchResult } from '$states/search.svelte';
 
 /**
@@ -10,11 +11,15 @@ export const isDiscordActivity =
 	(location.hostname.endsWith('.discordsays.com') || new URLSearchParams(location.search).has('frame_id'));
 
 /**
- * Inside the activity iframe every external host is blocked by Discord's CSP —
- * only the URL mappings configured in the Developer Portal are reachable, under
- * `/.proxy/<prefix>`. See the "Discord Activities" section of the README.
+ * `PUBLIC_API_URL` comes from `.env`, overridable in `.env.local`, and is inlined
+ * at build time — so a deployment picks its API without touching this file. The
+ * committed value is a placeholder: a real deployment sets its own.
+ *
+ * Inside the activity iframe it is ignored: every external host is blocked by
+ * Discord's CSP, and only the URL mappings configured in the Developer Portal are
+ * reachable, under `/.proxy/<prefix>`. See the README's Discord Activity section.
  */
-export const audioApi = isDiscordActivity ? '/.proxy/api/Audio' : 'https://api.gergov.bg/Audio';
+export const audioApi = isDiscordActivity ? '/.proxy/api/Audio' : PUBLIC_API_URL;
 
 /**
  * Socket URL for an API path. Browser-only: `audioApi` may be a proxy path, so

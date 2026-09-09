@@ -31,8 +31,8 @@ npm install
 npm run dev
 ```
 
-> [!NOTE]
-> musicrain talks to `https://api.gergov.bg/Audio` until you change `audioApi` in [Frontend/src/lib/discord.ts](Frontend/src/lib/discord.ts). Point it at your own API before building for a deployment.
+> [!IMPORTANT]
+> `Frontend/.env` ships placeholders, so point musicrain at your own API before it can play anything: `echo 'PUBLIC_API_URL=http://localhost:5340/Audio' >> Frontend/.env.local` — the backend on compose's defaults. The value is inlined at build time, so changing it needs a rebuild rather than a restart.
 
 Host-specific values and secrets live in `Backend/.env`, which compose reads on its own and git ignores. [Backend/README.md](Backend/README.md#configuration) lists them, and [Backend/nginx.example.conf](Backend/nginx.example.conf) shows the path routing that goes in front of the stack.
 
