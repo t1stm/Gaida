@@ -1,15 +1,99 @@
-# A (Future) Game-Changing Music Listening Platform 
+# Gaida Backend
 
-The frontend-facing endpoint contract is documented in [API.md](API.md).
+The backend is a set of small HTTP services behind one public API. Four of them are **platform pods** — the local file library, YouTube, Spotify and Deezer — and each answers the same handful of routes: `/classify`, `/resolve`, `/search`, `/playlist`, `/random` and `/content`. A pod that cannot do something answers `404` there, so support is discovered rather than declared, and [Gaida.API](Services/Gaida.API) can front a new service by pointing an environment variable at its container.
 
-## Features
+The rest are services with jobs of their own: transcoding, caching, rooms, accounts and an admin panel. Everything is .NET 10 except the Spotify and Deezer pods, which are Python.
 
-* Cutting edge content delivery method for all types of users.
-* Easily add new platforms
-* Easy to understand code
+The frontend-facing contract is in [API.md](API.md), the room protocol in [MULTIPLAYER_API.md](MULTIPLAYER_API.md), and the stack comes up from [compose.yaml](compose.yaml) — which carries the operational notes for every service in its comments. [nginx.example.conf](nginx.example.conf) shows the path routing in front of it.
 
-## Expected Features
+## Services
 
-* A better README :P
-* Examples on how to add more APIs without modifying the base.
-* ~~Separating different platforms into their own projects.~~
+| Service | Role |
+| --- | --- |
+| [Gaida.API](Services/Gaida.API) | The public front door. Fans a search out to every pod, resolves metadata-only results into playable ones, and transcodes on the way out. The only stateless service, so the only one worth scaling. |
+| [Dunav](Services/Dunav) | The fan-out download cache. One upstream fetch per key, an on-disk body served to every client that asked, LRU eviction against a disk budget. |
+| [Selo](Services/Selo) | Rooms. WebSocket sessions holding several listeners on one shared clock. |
+| [Dom](Services/Dom) | Accounts and playlists. Talks to nothing, and the one volume that holds real user data. |
+| [Oko](Services/Oko) | The admin panel. Reads every other service, holds no state of its own. |
+| [Gaida.Bot](Services/Gaida.Bot) | A Discord bot playing from the same library, in-process rather than over HTTP. |
+
+## Interesting techniques
+
+- **One writer, many readers, over a single file.** [`StreamSpreader`](Gaida%20Library/Gaida.Core/Streams/StreamSpreader.cs) is a `Stream` that lets an in-progress download serve every client that asked for it. `FileShare.ReadWrite | FileShare.Delete` on both sides is what makes that legal on Windows and lets the file be evicted while readers still hold it — unlinking removes the directory entry, and the bytes live until the last descriptor closes.
+- **Request coalescing.** [`CacheService`](Services/Dunav/CacheService.cs) keys in-flight fetches in a `ConcurrentDictionary<string, Lazy<Task<CacheEntry?>>>`, so a thousand clients racing for a cold track cause exactly one upstream fetch. Same trick as `ManagerService.GetOrStartEncoderAsync`, which coalesces encodes.
+- **Streaming responses end to end.** Search returns `IAsyncEnumerable<PlatformResult>`, which ASP.NET Core writes as a chunked JSON array flushed element by element. The status code is decided before the first element, so a failure mid-array truncates the result set instead of producing an error body.
+- **Bounded parallel projection that keeps order.** `Streaming.SelectParallel` runs N resolves at once over a stream and still emits in the producer's order, so a playlist's first track is playable long before its last is looked up.
+- **Crash-safe cache writes.** [`YouTubeCacher`](Platforms/Gaida.Platforms.YouTube/Cache/YouTubeCacher.cs) writes a full snapshot to `<file>.tmp` and renames it into place. The older truncate-and-append was faster and could corrupt the file if the process died between the two.
+- **Span lookups without allocating.** `HashSet<string>.GetAlternateLookup<ReadOnlySpan<char>>()` matches platform ID prefixes on the hot path with no substring allocation.
+- **A calibrated fuzzy matcher.** [`MusicManager.Match`](Platforms/Gaida.Platforms.MusicDatabase/Manager/MusicManager.Match.cs) weights title against artist 0.65/0.35 over Levenshtein distance and grades a match `Same`, `Variant` or `Weak`. The thresholds come from a 2000-title pass over the real library, and the file records which titles set them.
+- **Cyrillic romanization for search only.** [`Romanize`](Gaida%20Library/Gaida.Core/Utils/Romanize.cs) transliterates for matching; the API still returns the original script, so a track tagged in Cyrillic renders in Cyrillic.
+- **Live admin feeds over Server-Sent Events.** [`Fleet`](Services/Oko/Fleet.cs) uses `System.Net.ServerSentEvents` and runs nothing on a timer — every call is driven by an open browser tab, so closing the panel stops all of it.
+- **An admin surface that defaults to absent.** `MapAdmin` returns `null` without `ADMIN_TOKEN`, and every `/Admin/*` route answers 404. A missing secret disables the surface rather than exposing it.
+
+## Technologies worth a look
+
+- [.NET 10](https://dotnet.microsoft.com/) minimal APIs, with `IAsyncEnumerable<T>` as the streaming primitive and `.slnx` as the solution format
+- [Serilog](https://serilog.net/) with [Serilog.Expressions](https://github.com/serilog/serilog-expressions) for structured logging
+- [TagLib#](https://github.com/mono/taglib-sharp) — reads ID3v2, FLAC and WavPack tags out of the library
+- [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode), with [yt-dlp](https://github.com/yt-dlp/yt-dlp) as the fallback getter
+- [FFmpeg](https://ffmpeg.org/) for on-the-fly transcoding
+- [FastAPI](https://fastapi.tiangolo.com/) and [Uvicorn](https://www.uvicorn.org/) for the Python pods
+- [SpotAPI](https://github.com/Aran404/SpotAPI) and [deezer-py](https://gitlab.com/RemixDev/deezer-py) — both reach their service's own web endpoints, so neither needs a client ID or a secret
+- [DSharpPlus](https://github.com/DSharpPlus/DSharpPlus) on its `voice-rewrite` branch, tracked as a submodule
+- [xUnit](https://xunit.net/) and [coverlet](https://github.com/coverlet-coverage/coverlet)
+
+## Project structure
+
+```
+.
+├── data/
+│   ├── covers/
+│   ├── deezer-audio/
+│   ├── music/
+│   ├── youtube-audio/
+│   └── youtube-cache/
+├── DSharpPlus/
+├── Gaida Library/
+│   ├── Gaida.Admin/
+│   ├── Gaida.CLI/
+│   └── Gaida.Core/
+│       ├── FFmpeg/
+│       ├── Platforms/
+│       ├── Streams/
+│       └── Utils/
+├── Platforms/
+│   ├── Gaida.Platforms.MusicDatabase/
+│   ├── Gaida.Platforms.YouTube/
+│   ├── Gaida.Pods.Deezer/
+│   ├── Gaida.Pods.MusicDatabase/
+│   ├── Gaida.Pods.Spotify/
+│   └── Gaida.Pods.YouTube/
+├── scripts/
+├── Services/
+│   ├── Dom/
+│   ├── Dunav/
+│   ├── Gaida.API/
+│   ├── Gaida.Bot/
+│   ├── Oko/
+│   └── Selo/
+├── Tests/
+│   ├── Gaida.Tests/
+│   └── Pods.Tests/
+├── API.md
+├── MULTIPLAYER_API.md
+├── compose.yaml
+├── Gaida.slnx
+└── nginx.example.conf
+```
+
+[Gaida Library/Gaida.Core](Gaida%20Library/Gaida.Core) is the shared library every service builds on. `Platforms/` holds the abstract `Platform`, its `ISupports*` capability interfaces and `HttpPlatform`, the adapter that makes a remote pod look like an in-process one. `Streams/` holds `StreamSpreader`. `Utils/` holds the matching, romanization and parallel-streaming helpers.
+
+[Platforms](Platforms) splits each service in two. `Gaida.Platforms.*` is library code — search providers and content getters. `Gaida.Pods.*` is the deployable that wraps one of them in HTTP, or, for Spotify and Deezer, a standalone Python app. Each of the six has its own README.
+
+[Services](Services) holds everything that is not a pod. Names are Bulgarian: *Dunav* the Danube, *Selo* a village, *Dom* a home, *Oko* an eye.
+
+[data](data) is where the compose defaults mount their volumes — the music library, extracted album art, and the YouTube and Deezer audio caches. Gitignored, and sized in the tens of gigabytes on a real deployment. Only `covers/` is served directly by nginx, as `/Album_Covers`.
+
+[Tests](Tests) is split by what it covers: `Gaida.Tests` for the shared library and the services, `Pods.Tests` for platform code. The .NET pods also carry a `--self-check` flag that runs their pure-logic checks with no library and no listening host.
+
+[DSharpPlus](DSharpPlus) is a git submodule pinned to the library's `voice-rewrite` branch, needed for the bot's voice support.
