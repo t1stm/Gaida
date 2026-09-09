@@ -2,7 +2,7 @@
 
 # Gaida
 
-Gaida is a self-hosted music platform. One public API sits in front of several interchangeable "platform pods" — a local file library, YouTube, Spotify and Deezer — and a SvelteKit web player consumes it. The player runs as an ordinary site, as an installable PWA, or embedded as a Discord Activity. Listeners can open a room and stay on the same track at the same position, inside about 50 ms of each other.
+Gaida is a self-hosted music platform. One public API sits in front of several interchangeable "platform pods" — a local file library, YouTube, Spotify and Deezer — and **musicrain**, a SvelteKit web player, consumes it. It runs as an ordinary site, as an installable PWA, or embedded as a Discord Activity. Listeners can open a room and stay on the same track at the same position, inside about 50 ms of each other.
 
 Every pod speaks the same small HTTP contract, so adding a service means adding a container, not touching the API. Two of the four pods are Python; the rest of the backend is .NET 10. The endpoint contract is in [Backend/API.md](Backend/API.md), the room protocol in [Backend/MULTIPLAYER_API.md](Backend/MULTIPLAYER_API.md), and the whole stack comes up from [Backend/compose.yaml](Backend/compose.yaml).
 
@@ -12,7 +12,7 @@ Every pod speaks the same small HTTP contract, so adding a service means adding 
 > Clone with submodules — the Discord bot builds against a pinned DSharpPlus branch.
 > `git clone --recurse-submodules <url>`, or `git submodule update --init` in a clone you already have.
 
-**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) with Compose v2, and [Node.js](https://nodejs.org/) 20 or newer for the player. Building the .NET services outside a container also wants the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) with Compose v2, and [Node.js](https://nodejs.org/) 20 or newer for musicrain. Building the .NET services outside a container also wants the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 Bring the backend up:
 
@@ -23,7 +23,7 @@ docker compose up --build
 
 The compose defaults are what a fresh checkout runs on: no secrets, no accounts, every volume under `Backend/data/`, and the API on <http://localhost:5340>. Put music in `Backend/data/music` — or point `MUSIC_LIBRARY_PATH` at where it already lives — and the library pod picks it up on its next start. Spotify and Deezer search work with no credentials; Deezer audio is the one thing that needs a cookie.
 
-Then the player:
+Then musicrain:
 
 ```bash
 cd Frontend
@@ -32,7 +32,7 @@ npm run dev
 ```
 
 > [!NOTE]
-> The player talks to `https://api.gergov.bg/Audio` until you change `audioApi` in [Frontend/src/lib/discord.ts](Frontend/src/lib/discord.ts). Point it at your own API before building for a deployment.
+> musicrain talks to `https://api.gergov.bg/Audio` until you change `audioApi` in [Frontend/src/lib/discord.ts](Frontend/src/lib/discord.ts). Point it at your own API before building for a deployment.
 
 Host-specific values and secrets live in `Backend/.env`, which compose reads on its own and git ignores. [Backend/README.md](Backend/README.md#configuration) lists them, and [Backend/nginx.example.conf](Backend/nginx.example.conf) shows the path routing that goes in front of the stack.
 

@@ -1,8 +1,8 @@
 <img src="static/favicon.svg" width="64" alt="">
 
-# Gaida Frontend
+# musicrain
 
-The web player. A SvelteKit app built to static files, talking to the Gaida API over `/Audio`. It plays from the local library, YouTube and Deezer, keeps a queue, holds playlists and accounts, and can put several listeners in a room on the same track at the same position — inside about 50 ms of each other, network aside.
+Gaida's web player. A SvelteKit app built to static files, talking to the Gaida API over `/Audio`. It plays from the local library, YouTube and Deezer, keeps a queue, holds playlists and accounts, and can put several listeners in a room on the same track at the same position — inside about 50 ms of each other, network aside.
 
 The same build runs in three places: as an ordinary site, as an installable PWA, and embedded in a Discord voice channel as an Activity. Nothing branches on that beyond URL rewriting; see [Running as a Discord Activity](#running-as-a-discord-activity) below.
 
@@ -116,7 +116,7 @@ The build is plain files — `adapter-static` with an `index.html` fallback — 
 
    | Prefix | Target |
    | ------ | ------ |
-   | `/`    | the frontend host (`music.gergov.bg`, or your dev tunnel host) |
+   | `/`    | the musicrain host (`music.gergov.bg`, or your dev tunnel host) |
    | `/api` | `api.gergov.bg` |
 
    The activity iframe blocks every host that isn't mapped, so the client rewrites API URLs to `/.proxy/<prefix>` when it detects it's embedded ([src/lib/discord.ts](src/lib/discord.ts)). Artwork lives on ytimg and the cover host, neither of which is mapped, so thumbnails are taken from `/Audio/Cover?id=` instead — the API fetches and caches them and serves them from its own origin.
