@@ -35,6 +35,17 @@ def to_dto(track: Mapping[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+def with_album(record: Mapping[str, Any], tracks: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """
+    An album's tracks carrying the album they came from.
+
+    ``get_album_tracks`` returns bare track objects with no nested ``album``, so mapping them as they
+    arrive would give every row of an album view a null album name and a null cover -- most of what the
+    page is. Merging the record in beats teaching :func:`to_dto` a second shape.
+    """
+    return [{**track, "album": track.get("album") or record} for track in tracks]
+
+
 def _id(track: Mapping[str, Any]) -> str | None:
     """
     The catalogue ID, or ``None`` for an entry nothing can stream.

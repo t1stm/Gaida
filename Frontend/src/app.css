@@ -131,6 +131,16 @@
 	}
 }
 
+/* A width cap belongs to the content, not to the scroller: a scroller only as
+   wide as its column leaves the rest of the window dead under the wheel. */
+@utility page-column {
+	& > * {
+		margin-inline: auto;
+		width: 100%;
+		max-width: var(--container-5xl);
+	}
+}
+
 /* The rain gauge. The API transcodes on demand, so the first seconds of a new
    track are a real wait — name it instead of hiding it behind a spinner. */
 @keyframes rain-fall {

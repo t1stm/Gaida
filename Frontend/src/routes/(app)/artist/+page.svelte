@@ -86,7 +86,7 @@
 
 <svelte:head><title>{data.term ? `${data.term} · musicrain` : 'Artist · musicrain'}</title></svelte:head>
 
-<div class="page mx-auto w-full max-w-5xl gap-5 p-4 sm:gap-6 sm:p-6 sm:pb-28">
+<div class="page page-column gap-5 p-4 sm:gap-6 sm:p-6 sm:pb-28">
 	<div>
 		<p class="eyebrow text-gold">Artist</p>
 		<h1 class="mt-2 font-display text-xl font-light leading-tight tracking-tight text-chalk sm:text-3xl">{data.term || 'Choose an artist'}</h1>

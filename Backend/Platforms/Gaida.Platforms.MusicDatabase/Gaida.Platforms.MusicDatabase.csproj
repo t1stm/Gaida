@@ -14,4 +14,9 @@
     <PackageReference Include="taglib-sharp-netstandard2.0" Version="2.1.0"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- MusicManager.Ordered is the album playlist parser: worth a test, not worth a public API. -->
+    <InternalsVisibleTo Include="Pods.Tests"/>
+  </ItemGroup>
+
 </Project>

@@ -31,7 +31,7 @@ import admin
 import cache
 import classify
 import stream
-from mapper import to_dto
+from mapper import to_dto, with_album
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 log = logging.getLogger("gaida.deezer")
@@ -46,6 +46,11 @@ PLAYLIST_LIMIT = int(os.environ.get("DEEZER_PLAYLIST_LIMIT") or 1000)
 """
 How much of a playlist to read. Deezer takes -1 for "all of it", but a 10,000-track editorial playlist
 is not something anyone queues on purpose, and every entry costs the client a row.
+"""
+
+ALBUM_TRACK_LIMIT = int(os.environ.get("DEEZER_ALBUM_TRACK_LIMIT") or 200)
+"""
+How much of an album to read. A box set is the only thing that comes near this; a record is a dozen.
 """
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -120,6 +125,40 @@ async def playlist(url: str | None = None) -> Response:
     # while the rest of the array is still being written.
     entries = _mapped((tracks or {}).get("data") or [])
     return StreamingResponse(_json_array(entries), media_type="application/json")
+
+
+@app.get("/album")
+async def album(artist: str | None = None, album: str | None = None) -> Response:
+    """
+    One album's tracks, found by name.
+
+    Gaida.API asks this only when the library has nothing -- which is the ordinary case rather than a
+    rare one, since the library holds an album only when a playlist file defines it. A miss here is
+    therefore the end of the line, and it is an empty array: an album this catalogue does not have is
+    not a failure.
+    """
+    wanted, credit = (album or "").strip(), (artist or "").strip()
+    if not wanted or not credit:
+        return JSONResponse([])
+
+    # Deezer's advanced syntax, matching the fields rather than the blob: a plain "artist album" query
+    # happily returns a compilation with the right words in its title. Built by hand rather than with
+    # api.advanced_search, which spells the same query but sends it to the track endpoint.
+    query = f'artist:"{_unquoted(credit)}" album:"{_unquoted(wanted)}"'
+    found = await _ask(lambda: client.api.search_album(query, limit=1), f"album {query!r}")
+    entries = (found or {}).get("data") or []
+    if not entries:
+        log.info("Deezer has no album for %s", query)
+        return JSONResponse([])
+
+    record = entries[0]
+    tracks = await _ask(lambda: client.api.get_album_tracks(record["id"], limit=ALBUM_TRACK_LIMIT),
+                        f"album tracks {record['id']}")
+
+    # Deezer's own order, which for an album is the running order -- the one place a pod's ordering is
+    # already what the listener wants. Streamed like /playlist above.
+    return StreamingResponse(_json_array(_mapped(with_album(record, (tracks or {}).get("data") or []))),
+                             media_type="application/json")
 
 
 @app.get("/content")
@@ -286,6 +325,11 @@ async def _refetch(id: str | None, prefer_flac: bool) -> Response:
 def _mapped(tracks: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Every entry Deezer listed that is actually a playable catalogue track, in its own order."""
     return [dto for dto in (to_dto(track) for track in tracks) if dto]
+
+
+def _unquoted(value: str) -> str:
+    """A field value safe to sit inside Deezer's ``field:"..."`` syntax, which has no escape for a quote."""
+    return value.replace('"', " ").strip()
 
 
 def _json_array(items: list[dict[str, Any]]) -> Iterator[bytes]:

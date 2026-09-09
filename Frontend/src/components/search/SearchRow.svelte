@@ -17,6 +17,10 @@
 	let artistUrl = $derived(
 		`${resolve('/artist')}?term=${encodeURIComponent(heroArtist(result.artist))}`
 	);
+	// Every album tag is a link, including the ones the library holds no playlist file for: the tag
+	// says the record exists, and the endpoint decides whether the library or Deezer can list it.
+	const albumUrl = (album: string) =>
+		`${resolve('/album')}?artist=${encodeURIComponent(heroArtist(result.artist))}&album=${encodeURIComponent(album)}`;
 
 	function stopPropagation(event: Event) {
 		event.stopPropagation();
@@ -100,7 +104,12 @@
 	<div class="min-w-0">
 		<p class="line-clamp-2 text-sm font-medium leading-snug text-chalk">{result.name}</p>
 		<p class="truncate text-[0.79rem] text-fog">
-			<ArtistLink artist={result.artist} />{#if result.album} · {result.album}{/if}<!--
+			<ArtistLink artist={result.artist} />{#if result.album}&nbsp;·&nbsp;<a
+					href={albumUrl(result.album)}
+					draggable="false"
+					class="rounded-art underline-offset-4 hover:text-chalk hover:underline focus-visible:outline-2 focus-visible:outline-primary-200"
+					>{result.album}</a
+				>{/if}<!--
 			--><span class="font-mono sm:hidden"> · {source.name} · {duration}{isLong ? ' · long' : ''}</span>
 		</p>
 	</div>

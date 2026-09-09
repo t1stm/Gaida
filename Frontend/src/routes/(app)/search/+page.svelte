@@ -62,7 +62,7 @@
 
 <svelte:head><title>{data.term ? `${data.term} · musicrain` : 'Search · musicrain'}</title></svelte:head>
 
-<div class="page mx-auto w-full max-w-5xl gap-6 p-4 sm:gap-9 sm:p-6 sm:pb-28">
+<div class="page page-column gap-6 p-4 sm:gap-9 sm:p-6 sm:pb-28">
 	<h1 class="font-display text-lg font-light leading-tight tracking-tight text-chalk sm:text-2xl">
 		{#if searching}
 			Searching for “{data.term}”…

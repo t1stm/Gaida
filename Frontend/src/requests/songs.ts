@@ -99,6 +99,18 @@ export function streamArtistYouTube(term: string, fetcher: Fetcher) {
 	return streamResults(fetcher, `/Artist/YouTube?term=${encodeURIComponent(term)}`);
 }
 
+/**
+ * One album's tracks, in the album's own order. No `Local`/`Deezer` pair like the artist endpoints:
+ * there is one album by that name and that artist, and the API decides who has it — the library when
+ * it holds a playlist file for it, Deezer when it does not.
+ */
+export function streamAlbum(artist: string, album: string, fetcher: Fetcher) {
+	return streamResults(
+		fetcher,
+		`/Album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`
+	);
+}
+
 export async function findQueryType(query: string, fetcher?: Fetcher) {
 	const resolution = await getJson<QueryResolution>(
 		fetcher ?? globalThis.fetch.bind(globalThis),

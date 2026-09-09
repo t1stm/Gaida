@@ -11,7 +11,7 @@ from pathlib import Path
 import cache
 import classify
 import stream
-from mapper import duration, to_dto
+from mapper import duration, to_dto, with_album
 
 TRACK = "3135556"
 PLAYLIST = "908622995"
@@ -102,6 +102,20 @@ def test_credits_every_contributor():
     # The lead is kept even when Deezer left it out of the contributor list.
     assert to_dto(_track(contributors=[{"name": "Pharrell Williams"}]))["artist"] == \
         "Daft Punk, Pharrell Williams"
+
+
+def test_album_tracks_keep_the_album_they_came_from():
+    # An album's own tracks arrive with no nested album, so the record has to be put back or every
+    # row of an album view loses its name and its cover.
+    record = {"id": 302127, "title": "Discovery", "cover_xl": "xl.jpg"}
+    bare = [{"id": 3135556, "title": "One More Time", "duration": 320, "artist": {"name": "Daft Punk"}}]
+
+    dto = to_dto(with_album(record, bare)[0])
+    assert dto["album"] == "Discovery"
+    assert dto["thumbnailUrl"] == "xl.jpg"
+
+    # A track that did carry one keeps it.
+    assert to_dto(with_album(record, [_track()])[0])["album"] == "Discovery"
 
 
 def test_duration_is_the_timespan_gaida_parses():

@@ -78,6 +78,14 @@ public sealed class HttpPlatform : Platform, ISupportsSearch, ISupportsPlaylist,
         return FetchList($"/artist?term={Uri.EscapeDataString(term)}", cancellationToken);
     }
 
+    /// <summary>One album's tracks by one artist, from any pod that lists albums (the library, Deezer).</summary>
+    public IAsyncEnumerable<PlatformResult> AlbumAsync(string artist, string album,
+        CancellationToken cancellationToken = default)
+    {
+        return FetchList($"/album?artist={Uri.EscapeDataString(artist)}&album={Uri.EscapeDataString(album)}",
+            cancellationToken);
+    }
+
     /// <summary>
     ///     Local-pod-only: whether the library already has the track a YouTube result names. Null when not worth
     ///     offering.

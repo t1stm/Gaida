@@ -36,6 +36,11 @@ public class MusicSearchProvider(ILogger logger) : SearchProvider(logger),
         return ToResults(MusicManager.GetArtistSongs(artist));
     }
 
+    public IAsyncEnumerable<PlatformResult> GetAlbumSongs(string artist, string album)
+    {
+        return ToResults(MusicManager.GetAlbumSongs(artist, album));
+    }
+
     /// <returns>One level of the library's folder tree: subfolders with their song counts, and the songs in the folder.</returns>
     public (IReadOnlyList<(string Name, int Songs)> Folders, IReadOnlyList<PlatformResult> Files) Browse(string? path)
     {

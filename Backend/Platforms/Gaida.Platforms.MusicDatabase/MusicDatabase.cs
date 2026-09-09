@@ -42,6 +42,12 @@ public sealed class MusicDatabase : Platform, ISupportsSearch, ISupportsRandomRe
         return _provider.GetArtistSongs(artist);
     }
 
+    /// <returns>One album's tracks in playlist order — see <see cref="Manager.MusicManager.GetAlbumSongs" />.</returns>
+    public IAsyncEnumerable<PlatformResult> GetAlbumSongs(string artist, string album)
+    {
+        return _provider.GetAlbumSongs(artist, album);
+    }
+
     /// <returns>One level of the library's folder tree, for the explorer.</returns>
     public (IReadOnlyList<(string Name, int Songs)> Folders, IReadOnlyList<PlatformResult> Files) Browse(string? path)
     {

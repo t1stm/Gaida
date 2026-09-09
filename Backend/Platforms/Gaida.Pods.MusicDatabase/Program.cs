@@ -215,6 +215,16 @@ app.MapGet("/artist", async Task<IResult> (string? term, MusicDatabase db, Cance
     return Results.Ok(sorted);
 });
 
+app.MapGet("/album", IResult (string? artist, string? album, MusicDatabase db, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(artist) || string.IsNullOrWhiteSpace(album))
+        return Results.Ok(Array.Empty<ResultDto>());
+
+    // No sort and no buffering, unlike /artist above: an album's order is the playlist file that defines
+    // it, so MusicManager already handed these over in the right order and this streams straight through.
+    return Results.Ok(Mapped(db.GetAlbumSongs(artist, album), ct));
+});
+
 app.MapGet("/variant", IResult (string? name, string? artist, string? duration, MusicDatabase db) =>
 {
     if (string.IsNullOrWhiteSpace(name))

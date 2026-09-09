@@ -89,6 +89,26 @@ public class MusicManagerTests
         Assert.Equal(manager.Browse(null).Folders, manager.Browse("/").Folders);
     }
 
+    [Fact]
+    public void AlbumTracksComeBackInThePlaylistsOrder()
+    {
+        // Folder order is not album order, and the folder holds more than the album does.
+        var songs = new[] { At("Rock/Queen/b.wv"), At("Rock/Queen/a.wv"), At("Rock/Queen/loose.wv") };
+        string[] lines =
+        [
+            "#EXTM3U",
+            "#EXTINF:223,Queen - A",
+            "a.wv",
+            "b.wv",
+            "gone.wv", // deleted since the playlist was written
+            "a.wvc",   // a WavPack correction file, never indexed
+            ""
+        ];
+
+        Assert.Equal(["Rock/Queen/a.wv", "Rock/Queen/b.wv"],
+            MusicManager.Ordered(songs, lines).Select(song => song.RelativeLocation));
+    }
+
     private static MusicInfo At(string location)
     {
         var song = Song(location, location.Split('/')[^1], "Anyone");
